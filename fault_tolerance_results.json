@@ -1,0 +1,128 @@
+{
+  "encoding": {
+    "1KB": {
+      "encode_avg_ms": 1.9624443326999124,
+      "decode_avg_ms": 0.027889000193681568,
+      "shard_count": 6
+    },
+    "10KB": {
+      "encode_avg_ms": 15.003277666740663,
+      "decode_avg_ms": 0.1406393336462012,
+      "shard_count": 6
+    },
+    "100KB": {
+      "encode_avg_ms": 140.18423600161137,
+      "decode_avg_ms": 0.5139723325555678,
+      "shard_count": 6
+    },
+    "1MB": {
+      "encode_avg_ms": 1761.0416386669385,
+      "decode_avg_ms": 3.9633609994780272,
+      "shard_count": 6
+    }
+  },
+  "recovery": {
+    "1KB": {
+      "0_lost_avg_ms": 0.06290300007094629,
+      "1_lost_avg_ms": 2.172569333197316,
+      "2_lost_avg_ms": 3.147999999782769,
+      "recovery_overhead_1_shard": 3353.8405652305046,
+      "recovery_overhead_2_shards": 4904.530779505334,
+      "3_lost_correctly_failed": true
+    },
+    "10KB": {
+      "0_lost_avg_ms": 0.04929166728591857,
+      "1_lost_avg_ms": 34.847945000365144,
+      "2_lost_avg_ms": 33.89602800113304,
+      "recovery_overhead_1_shard": 70597.43613708184,
+      "recovery_overhead_2_shards": 68666.24360161643,
+      "3_lost_correctly_failed": true
+    },
+    "100KB": {
+      "0_lost_avg_ms": 0.3586946671324161,
+      "1_lost_avg_ms": 282.37863899873145,
+      "2_lost_avg_ms": 325.066388999403,
+      "recovery_overhead_1_shard": 78623.95797133172,
+      "recovery_overhead_2_shards": 90524.8179261057,
+      "3_lost_correctly_failed": true
+    },
+    "1MB": {
+      "0_lost_avg_ms": 6.335680667689303,
+      "1_lost_avg_ms": 3066.15488866737,
+      "2_lost_avg_ms": 3780.03201333316,
+      "recovery_overhead_1_shard": 48295.03519020684,
+      "recovery_overhead_2_shards": 59562.60314555567,
+      "3_lost_correctly_failed": true
+    }
+  },
+  "failure_patterns": {
+    "lose_first_2_data": {
+      "lost_indices": [
+        0,
+        1
+      ],
+      "available_shards": 4,
+      "recovered": true,
+      "time_ms": 295.28824999943026
+    },
+    "lose_last_2_data": {
+      "lost_indices": [
+        2,
+        3
+      ],
+      "available_shards": 4,
+      "recovered": true,
+      "time_ms": 300.5541249985981
+    },
+    "lose_both_parity": {
+      "lost_indices": [
+        4,
+        5
+      ],
+      "available_shards": 4,
+      "recovered": true,
+      "time_ms": 0.44416699893190525
+    },
+    "lose_1_data_1_parity": {
+      "lost_indices": [
+        0,
+        4
+      ],
+      "available_shards": 4,
+      "recovered": true,
+      "time_ms": 253.0085419966781
+    },
+    "lose_2_data_1_parity_fail": {
+      "lost_indices": [
+        0,
+        1,
+        4
+      ],
+      "available_shards": 3,
+      "recovered": false,
+      "error": "Need at least 4 shards to decode, only have 3"
+    }
+  },
+  "recovery_by_size": {
+    "1KB": {
+      "size_bytes": 1024,
+      "recovery_time_ms": 1.7242639987671282,
+      "recovery_throughput_mbps": 0.5663648378080475
+    },
+    "10KB": {
+      "size_bytes": 10240,
+      "recovery_time_ms": 49.381110999092925,
+      "recovery_throughput_mbps": 0.19776033390944533
+    },
+    "100KB": {
+      "size_bytes": 102400,
+      "recovery_time_ms": 301.3251946661815,
+      "recovery_throughput_mbps": 0.3240892289414663
+    },
+    "1MB": {
+      "size_bytes": 1048576,
+      "recovery_time_ms": 3120.333971998965,
+      "recovery_throughput_mbps": 0.3204785157530348
+    }
+  }
+}
