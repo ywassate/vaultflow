@@ -34,3 +34,4 @@ coverage/
 # Docker volumes (local)
 pg-data/
 minio*-data/
+backend/gateway/__pycache__/
