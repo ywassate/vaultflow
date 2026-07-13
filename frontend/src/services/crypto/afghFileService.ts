@@ -11,9 +11,7 @@ import type {
   AFGHFileEnvelope,
   SharedAFGHFileEnvelope,
   EncryptedChunkAFGH,
-  ReEncryptionKey,
   Level2Ciphertext,
-  Level1Ciphertext,
   G2Element,
 } from "../../types/afgh";
 import { AFGHError, AFGHErrorCode } from "../../types/afgh";
@@ -186,21 +184,57 @@ class AFGHFileService {
 
   /**
    * Crée un partage sécurisé pour un destinataire
+   * Approche decrypt-then-re-encrypt : Alice déchiffre sa clé fichier
+   * puis la re-chiffre sous une nouvelle enveloppe Level 2 pour Bob.
    */
   async shareFile(
     envelope: AFGHFileEnvelope,
-    reEncryptionKey: ReEncryptionKey,
-    ownerPublicKey: AFGHPublicKey,
+    ownerKeyPair: AFGHKeyPair,
+    recipientPublicKey: AFGHPublicKey,
     recipientId: string,
     sharePermissions: "read" | "read-write" = "read"
   ): Promise<SharedAFGHFileEnvelope> {
     try {
       console.log(`[AFGH File] Sharing file ${envelope.fileId} with ${recipientId}`);
 
-      const reEncryptedKEM: Level1Ciphertext = await afghService.reEncrypt(
+      // Step 1: Owner decrypts her KEM to recover the Fp12 secret
+      const ownerSecretFp12 = await afghService.decryptLevel2(
         envelope.kemCiphertext,
-        reEncryptionKey,
-        ownerPublicKey
+        ownerKeyPair.secretKey1,
+        ownerKeyPair.secretKey2
+      );
+
+      // Step 2: Derive K_sym and unwrap the file key
+      const salt = envelope.kdfSalt || new Uint8Array(this.PBKDF2_SALT_LENGTH);
+      const K_sym = await this.deriveKeyFromSecret(ownerSecretFp12, salt);
+      const wrapKeyIV = this.base64ToUint8Array(envelope.wrapKeyIV);
+      const wrappedFileKeyBuffer = this.base64ToArrayBuffer(envelope.wrappedFileKey);
+      const fileKeyRaw = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: new Uint8Array(wrapKeyIV) as Uint8Array<ArrayBuffer> },
+        K_sym,
+        wrappedFileKeyBuffer
+      );
+
+      // Step 3: Generate a new random secret for the recipient
+      const newSecret = afghService.generateRandomG2Element();
+
+      // Step 4: Encrypt the new secret with Level 2 under recipient's public key
+      const newKemCiphertext: Level2Ciphertext = await afghService.encryptLevel2(
+        newSecret,
+        recipientPublicKey
+      );
+
+      // Step 5: Derive new K_sym for recipient from the new secret
+      const newSecretFp12 = afghService.computeMessageElement(newSecret);
+      const newSalt = crypto.getRandomValues(new Uint8Array(this.PBKDF2_SALT_LENGTH));
+      const newK_sym = await this.deriveKeyFromSecret(newSecretFp12, newSalt);
+
+      // Step 6: Wrap the file key with the new K_sym
+      const newWrapKeyIV = crypto.getRandomValues(new Uint8Array(this.AES_IV_LENGTH));
+      const newWrappedFileKey = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: newWrapKeyIV },
+        newK_sym,
+        fileKeyRaw
       );
 
       const sharedEnvelope: SharedAFGHFileEnvelope = {
@@ -208,10 +242,10 @@ class AFGHFileService {
         fileName: envelope.fileName,
         fileSize: envelope.fileSize,
         mimeType: envelope.mimeType,
-        kemCiphertext: reEncryptedKEM,
-        wrappedFileKey: envelope.wrappedFileKey,
-        wrapKeyIV: envelope.wrapKeyIV,
-        kdfSalt: envelope.kdfSalt,
+        kemCiphertext: newKemCiphertext,
+        wrappedFileKey: this.arrayBufferToBase64(newWrappedFileKey),
+        wrapKeyIV: this.uint8ArrayToBase64(newWrapKeyIV),
+        kdfSalt: newSalt,
         chunks: envelope.chunks,
         metadata: envelope.metadata,
         recipientId: recipientId,
@@ -242,10 +276,12 @@ class AFGHFileService {
       console.log(`[AFGH File] Decrypting shared file: ${sharedEnvelope.fileId}`);
       progressCallback?.(0, "Starting decryption...");
 
+      // Use Level 2 decryption (shared envelope now contains a Level 2 ciphertext for the recipient)
       progressCallback?.(10, "Decrypting secret with AFGH...");
 
-      const secret_S = await afghService.decryptLevel1(
+      const secret_S = await afghService.decryptLevel2(
         sharedEnvelope.kemCiphertext,
+        recipientKeyPair.secretKey1,
         recipientKeyPair.secretKey2
       );
 

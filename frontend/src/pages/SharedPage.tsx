@@ -3,7 +3,7 @@ import { Share2, Search, Grid3x3, List, Download, Trash2, Loader2, AlertCircle }
 import { apiService, type SharedFileInfo } from '../services/apiService';
 import { afghFileService } from '../services/crypto/afghFileService';
 import { useAuth } from '../contexts/AuthContext';
-import type { SharedAFGHFileEnvelope, Level1Ciphertext } from '../types/afgh';
+import type { SharedAFGHFileEnvelope, Level2Ciphertext } from '../types/afgh';
 
 // Helper functions
 function base64ToUint8Array(base64: string): Uint8Array {
@@ -82,14 +82,11 @@ export const SharedPage: React.FC = () => {
       setDownloadProgress(30);
       const sharedEnvelopeData = JSON.parse(file.encryptedKey);
 
-      // Reconstruct the Level1Ciphertext from the shared data
-      const kemCiphertext: Level1Ciphertext = {
-        C1_prime: base64ToUint8Array(sharedEnvelopeData.kemCiphertext.C1_prime),
-        C2_prime: base64ToUint8Array(sharedEnvelopeData.kemCiphertext.C2_prime),
+      // Reconstruct the Level2Ciphertext from the shared data
+      const kemCiphertext: Level2Ciphertext = {
         U: base64ToUint8Array(sharedEnvelopeData.kemCiphertext.U),
-        A1: base64ToUint8Array(sharedEnvelopeData.kemCiphertext.A1),
-        A2: base64ToUint8Array(sharedEnvelopeData.kemCiphertext.A2),
-        level: 1,
+        V: base64ToUint8Array(sharedEnvelopeData.kemCiphertext.V),
+        level: 2,
       };
 
       // Construct the SharedAFGHFileEnvelope

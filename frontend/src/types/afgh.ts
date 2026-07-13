@@ -76,7 +76,7 @@ export interface AFGHFileEnvelope {
 }
 
 export interface SharedAFGHFileEnvelope extends Omit<AFGHFileEnvelope, "kemCiphertext"> {
-  kemCiphertext: Level1Ciphertext;
+  kemCiphertext: Level2Ciphertext;
   recipientId: string;
   shareId: string;
   permissions: "read" | "read-write";

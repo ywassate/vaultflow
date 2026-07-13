@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Alert } from '../ui';
 import { X, Share2, Mail, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { apiService } from '../../services/apiService';
-import { afghService } from '../../services/crypto/afghService';
 import { afghFileService } from '../../services/crypto/afghFileService';
 import { useAuth } from '../../contexts/AuthContext';
 import type { AFGHPublicKey } from '../../types/afgh';
@@ -84,39 +83,24 @@ export const FileShareDialog: React.FC<FileShareDialogProps> = ({
 
       console.log('[Share] Recipient public key retrieved');
 
-      // Step 2: Generate re-encryption key (Alice -> Bob)
-      console.log('[Share] Generating re-encryption key...');
-      const { reEncryptionKey } = await afghService.generateReEncryptionKey(
-        keyPair.secretKey2,
-        recipientPublicKey,
-        keyPair.userId,
-        recipientEmail,
-        'read'
-      );
-
-      console.log('[Share] Re-encryption key generated');
-
-      // Step 3: Create shared envelope with re-encrypted KEM
-      const ownerPublicKey = afghService.extractPublicKey(keyPair);
+      // Step 2: Create shared envelope (decrypt-then-re-encrypt for recipient)
+      console.log('[Share] Creating shared envelope for recipient...');
       const sharedEnvelope = await afghFileService.shareFile(
         envelope,
-        reEncryptionKey,
-        ownerPublicKey,
+        keyPair,
+        recipientPublicKey,
         recipientEmail,
         'read'
       );
 
       console.log('[Share] Shared envelope created');
 
-      // Step 4: Serialize and send to backend
+      // Step 3: Serialize and send to backend
       const serializedEnvelope = JSON.stringify({
         ...sharedEnvelope,
         kemCiphertext: {
-          C1_prime: uint8ArrayToBase64(sharedEnvelope.kemCiphertext.C1_prime),
-          C2_prime: uint8ArrayToBase64(sharedEnvelope.kemCiphertext.C2_prime),
           U: uint8ArrayToBase64(sharedEnvelope.kemCiphertext.U),
-          A1: uint8ArrayToBase64(sharedEnvelope.kemCiphertext.A1),
-          A2: uint8ArrayToBase64(sharedEnvelope.kemCiphertext.A2),
+          V: uint8ArrayToBase64(sharedEnvelope.kemCiphertext.V),
           level: sharedEnvelope.kemCiphertext.level,
         },
         kdfSalt: sharedEnvelope.kdfSalt ? uint8ArrayToBase64(sharedEnvelope.kdfSalt) : undefined,
