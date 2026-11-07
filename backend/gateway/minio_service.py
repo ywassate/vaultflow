@@ -9,14 +9,16 @@ import boto3
 from botocore.client import Config
 from botocore.exceptions import ClientError
 
+from config import require_env
+
 
 class MinIOService:
     """Service pour interagir avec le cluster MinIO"""
 
     def __init__(self):
         self.endpoint = os.getenv('S3_ENDPOINT', 'http://localhost:9000')
-        self.access_key = os.getenv('S3_ACCESS_KEY', 'gateway-user')
-        self.secret_key = os.getenv('S3_SECRET_KEY', 'gateway-secret-key-123')
+        self.access_key = require_env('S3_ACCESS_KEY')
+        self.secret_key = require_env('S3_SECRET_KEY')
         self.bucket = os.getenv('S3_BUCKET', 'secure-files')
         self.region = os.getenv('S3_REGION', 'us-east-1')
 

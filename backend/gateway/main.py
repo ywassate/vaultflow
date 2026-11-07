@@ -40,6 +40,7 @@ from sqlalchemy.orm import Session
 
 load_dotenv()
 
+from config import require_env
 from database import Base, engine, SessionLocal
 from models import User, File as FileModel, Chunk, Share, Folder, Team, TeamMember
 from minio_service import minio_service
@@ -56,7 +57,7 @@ from services import (
 
 # Config
 HSM_SERVICE_URL = os.getenv("HSM_URL", "http://localhost:8000")
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "super-secret-key-change-in-production")
+SECRET_KEY = require_env("JWT_SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
