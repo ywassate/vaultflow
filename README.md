@@ -1,5 +1,7 @@
 # VaultFlow – stockage distribué chiffré
 
+[![CI](https://github.com/ywassate/vaultflow/actions/workflows/ci.yml/badge.svg)](https://github.com/ywassate/vaultflow/actions/workflows/ci.yml)
+
 Application web de stockage de fichiers **chiffrés de bout en bout**, avec **partage sécurisé** et **tolérance aux pannes**. Le serveur ne voit jamais un fichier en clair.
 
 - **Chiffrement** : AES-256-GCM côté navigateur ; partage par *proxy re-encryption* AFGH, sans déchiffrement côté serveur.
