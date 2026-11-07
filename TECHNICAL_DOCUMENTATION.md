@@ -601,11 +601,11 @@ src/
 
 #### Backend (.env)
 ```bash
-DATABASE_URL=postgresql+psycopg://postgres:postgres123@localhost:5432/storage
+DATABASE_URL=postgresql+psycopg://${PG_USER}:${PG_PASSWORD}@localhost:5432/storage
 JWT_SECRET_KEY=your-secret-key-change-in-production
 MINIO_ENDPOINT=localhost:9000
-MINIO_ACCESS_KEY=minioadmin
-MINIO_SECRET_KEY=minioadmin
+MINIO_ACCESS_KEY=<à définir>
+MINIO_SECRET_KEY=<à définir>
 MINIO_BUCKET=storage
 ```
 
@@ -625,7 +625,7 @@ services:
     environment:
       POSTGRES_DB: storage
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres123
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -648,7 +648,7 @@ services:
       - postgres
       - minio1
     environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres123@postgres:5432/storage
+      DATABASE_URL: postgresql+psycopg://${PG_USER}:${PG_PASSWORD}@postgres:5432/storage
 
 volumes:
   postgres_data:
