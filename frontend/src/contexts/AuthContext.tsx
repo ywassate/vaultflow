@@ -202,7 +202,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const updateMasterKey = async (_password: string) => {
+  const updateMasterKey = async () => {
     // Master key management simplified - AFGH handles key derivation internally
     console.log("[Auth] Master key update requested");
   };

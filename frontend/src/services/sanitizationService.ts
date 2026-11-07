@@ -13,6 +13,7 @@ class SanitizationService {
      */
     sanitizeFileName(fileName: string): string {
         // Remove null bytes and control characters
+        // eslint-disable-next-line no-control-regex -- Intentionally strip C0 and C1 control characters.
         let sanitized = fileName.replace(/[\x00-\x1f\x80-\x9f]/g, "");
 
         // Remove potentially dangerous characters for file systems (though we store in DB)

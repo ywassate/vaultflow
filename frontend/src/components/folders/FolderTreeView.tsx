@@ -20,6 +20,36 @@ interface FolderNode extends Folder {
   expanded: boolean;
 }
 
+/**
+ * Vérifie si un nœud contient un dossier donné (lui-même ou descendant)
+ */
+const containsFolder = (node: FolderNode, targetId: string): boolean => {
+  if (node.id === targetId) {
+    return true;
+  }
+
+  return node.children.some(child => containsFolder(child, targetId));
+};
+
+/**
+ * Expand récursivement le chemin vers un dossier donné
+ */
+const expandPathToFolder = (nodes: FolderNode[], targetId: string): FolderNode[] => {
+  return nodes.map(node => {
+    const hasTarget = containsFolder(node, targetId);
+
+    if (hasTarget) {
+      return {
+        ...node,
+        expanded: true,
+        children: expandPathToFolder(node.children, targetId)
+      };
+    }
+
+    return node;
+  });
+};
+
 export const FolderTreeView: React.FC = () => {
   const [tree, setTree] = useState<FolderNode[]>([]);
   const { folderId } = useParams<{ folderId?: string }>();
@@ -54,36 +84,6 @@ export const FolderTreeView: React.FC = () => {
       setTree(prevTree => expandPathToFolder(prevTree, folderId));
     }
   }, [folderId]);
-
-  /**
-   * Expand récursivement le chemin vers un dossier donné
-   */
-  const expandPathToFolder = (nodes: FolderNode[], targetId: string): FolderNode[] => {
-    return nodes.map(node => {
-      const hasTarget = containsFolder(node, targetId);
-
-      if (hasTarget) {
-        return {
-          ...node,
-          expanded: true,
-          children: expandPathToFolder(node.children, targetId)
-        };
-      }
-
-      return node;
-    });
-  };
-
-  /**
-   * Vérifie si un nœud contient un dossier donné (lui-même ou descendant)
-   */
-  const containsFolder = (node: FolderNode, targetId: string): boolean => {
-    if (node.id === targetId) {
-      return true;
-    }
-
-    return node.children.some(child => containsFolder(child, targetId));
-  };
 
   /**
    * Toggle l'état expanded d'un dossier

@@ -31,7 +31,7 @@ const initCache = async (): Promise<void> => {
         foldersCache = await response.json();
         cacheInitialized = true;
       }
-    } catch (error) {
+    } catch {
       console.warn('[Folders] API not available, using empty cache');
       foldersCache = [];
     }

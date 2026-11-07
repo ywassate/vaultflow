@@ -1,13 +1,25 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Users, Shield, Search, Loader2 } from "lucide-react";
-import type { Team } from "../types/teams";
+import type { Team, TeamMember } from "../types/teams";
 import { TeamCard } from "../components/teams/TeamCard";
 import { TeamManagementModal } from "../components/teams/TeamManagementModal";
 import { CreateTeamModal } from "../components/teams/CreateTeamModal";
 import { EditTeamModal } from "../components/teams/EditTeamModal";
 import { apiService } from "../services/apiService";
-import { useToast } from "../contexts/ToastContext";
+import { useToast } from "../contexts/toast";
 import { useAuth } from "../contexts/AuthContext";
+
+type TeamResponse = Team & {
+  team_id?: Team['id'];
+  created_by?: Team['createdBy'];
+  created_at?: Team['createdAt'];
+};
+
+type TeamMemberResponse = TeamMember & {
+  userId?: TeamMember['id'];
+  user_id?: TeamMember['id'];
+  userName?: TeamMember['name'];
+};
 
 export const TeamsPage: React.FC = () => {
   const [teams, setTeams] = useState<Team[]>([]);
@@ -30,11 +42,11 @@ export const TeamsPage: React.FC = () => {
       const teamsData = await apiService.getTeams();
 
       // Adapt backend data to Team type with members
-      const adaptedTeams: Team[] = await Promise.all(teamsData.map(async (t: any) => {
-        let members: any[] = [];
+      const adaptedTeams: Team[] = await Promise.all(teamsData.map(async (t: TeamResponse) => {
+        let members: TeamMember[] = [];
         try {
           const membersData = await apiService.getTeamMembers(t.id);
-          members = membersData.map((m: any) => ({
+          members = membersData.map((m: TeamMemberResponse): TeamMember => ({
             id: m.userId || m.user_id || m.id,
             name: m.name || m.userName || 'Unknown',
             email: m.email || '',

@@ -31,7 +31,7 @@ const initCache = async (): Promise<void> => {
         teamsCache = await response.json();
         cacheInitialized = true;
       }
-    } catch (error) {
+    } catch {
       console.warn('[Teams] API not available, using empty cache');
       teamsCache = [];
     }

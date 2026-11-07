@@ -192,7 +192,7 @@ export const HomePage: React.FC = () => {
 
   // Calculate percentages and create segments for the circle
   const segments = Object.entries(storageByCategory)
-    .filter(([_, data]) => data.size > 0)
+    .filter(([, data]) => data.size > 0)
     .map(([key, data]) => ({
       key,
       ...data,

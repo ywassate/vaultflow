@@ -15,7 +15,7 @@ const initCache = async (): Promise<void> => {
     try {
       filesCache = await apiService.getFiles();
       cacheInitialized = true;
-    } catch (error) {
+    } catch {
       console.warn('[Files] API not available, using empty cache');
       filesCache = [];
     }
