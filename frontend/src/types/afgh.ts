@@ -64,6 +64,7 @@ export interface AFGHFileEnvelope {
   wrappedFileKey: string;
   wrapKeyIV: string;
   kdfSalt?: Uint8Array;
+  _backupSecret?: G2Element;
   chunks: EncryptedChunkAFGH[];
   metadata: {
     ownerId: string;

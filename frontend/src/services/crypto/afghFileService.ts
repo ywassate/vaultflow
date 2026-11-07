@@ -511,8 +511,8 @@ class AFGHFileService {
       },
       kdfSalt: envelope.kdfSalt ? this.uint8ArrayToBase64(envelope.kdfSalt) : undefined,
       // Store backup secret for recovery (temporary until AFGH PRE is fully implemented)
-      _backupSecret: (envelope as any)._backupSecret
-        ? this.uint8ArrayToBase64((envelope as any)._backupSecret)
+      _backupSecret: envelope._backupSecret
+        ? this.uint8ArrayToBase64(envelope._backupSecret)
         : undefined,
     };
     return JSON.stringify(serialized);
@@ -531,7 +531,7 @@ class AFGHFileService {
     };
     // Restore backup secret if available
     if (parsed._backupSecret) {
-      (envelope as any)._backupSecret = this.base64ToUint8Array(parsed._backupSecret);
+      envelope._backupSecret = this.base64ToUint8Array(parsed._backupSecret);
     }
     return envelope;
   }
