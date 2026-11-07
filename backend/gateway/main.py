@@ -21,6 +21,7 @@ from typing import List, Optional, Dict, Any
 import requests
 from dotenv import load_dotenv
 from fastapi import (
+    Request,
     FastAPI,
     Depends,
     HTTPException,
@@ -34,13 +35,14 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.responses import JSONResponse
-from jose import JWTError, jwt
+
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 load_dotenv()
 
 from config import require_env
+from security import LoginRateLimiter, TokenService
 from database import Base, engine, SessionLocal
 from models import User, File as FileModel, Chunk, Share, Folder, Team, TeamMember
 from minio_service import minio_service
@@ -58,8 +60,8 @@ from services import (
 # Config
 HSM_SERVICE_URL = os.getenv("HSM_URL", "http://localhost:8000")
 SECRET_KEY = require_env("JWT_SECRET_KEY")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+token_service = TokenService(SECRET_KEY)
+login_limiter = LoginRateLimiter()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
@@ -77,20 +79,14 @@ def get_db():
         db.close()
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
-    to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return token_service.create(data["sub"], expires_delta)
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
     if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email = payload.get("sub")
-        if not email:
-            raise HTTPException(status_code=401, detail="Invalid token")
-    except JWTError:
+    payload = token_service.decode(token)
+    email = payload.get("sub") if payload else None
+    if not email:
         raise HTTPException(status_code=401, detail="Invalid token")
     user = db.query(User).filter(User.email == email).first()
     if not user:
@@ -173,15 +169,24 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
     return {"message": "User registered successfully", "token": token, "user": user.to_dict()}
 
 @app.post("/api/auth/login")
-def login(data: UserLogin, db: Session = Depends(get_db)):
+def login(data: UserLogin, request: Request, db: Session = Depends(get_db)):
+    keys = [f"ip:{request.client.host if request.client else 'inconnu'}", f"compte:{data.email.lower()}"]
+    if any(login_limiter.is_blocked(k) for k in keys):
+        raise HTTPException(status_code=429, detail="Too many failed login attempts, try again later")
     user = db.query(User).filter(User.email == data.email).first()
     if not user or not user.check_password(data.password):
+        for k in keys:
+            login_limiter.record_failure(k)
         raise HTTPException(status_code=401, detail="Invalid email or password")
+    for k in keys:
+        login_limiter.reset(k)
     token = create_access_token({"sub": user.email})
     return {"token": token, "user": user.to_dict()}
 
 @app.post("/api/auth/logout")
-def logout():
+def logout(token: str = Depends(oauth2_scheme)):
+    if token:
+        token_service.revoke(token)
     return {"message": "Logged out"}
 
 @app.get("/api/auth/me")
