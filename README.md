@@ -1,6 +1,29 @@
-# Secure Distributed Storage
+# VaultFlow – stockage distribué chiffré
 
-Stockage distribue chiffre - Projet S9
+Application web de stockage de fichiers **chiffrés de bout en bout**, avec **partage sécurisé** et **tolérance aux pannes**. Le serveur ne voit jamais un fichier en clair.
+
+- **Chiffrement** : AES-256-GCM côté navigateur ; partage par *proxy re-encryption* AFGH, sans déchiffrement côté serveur.
+- **Tolérance aux pannes** : codes d'effacement Reed-Solomon (4 fragments de données + 2 de parité) répartis sur un cluster MinIO de 4 nœuds. Un fichier se reconstruit même avec 2 fragments perdus.
+- **Fonctionnalités** : comptes, dépôt et téléchargement, dossiers, équipes, partage entre utilisateurs, suivi de l'espace utilisé.
+
+## Origine du projet
+
+VaultFlow est issu d'un **projet d'équipe de 7 élèves-ingénieurs** (semestre 9, ENSEIRB-Matmeca, octobre 2025 – janvier 2026). L'historique complet de l'équipe est conservé dans ce dépôt, avec ses auteurs d'origine. Depuis juillet 2026, je le poursuis seul.
+
+### Ma contribution au projet d'équipe
+
+- **Frontend** : architecture de l'application React et versions successives de l'interface (dossiers, équipes, partage, tableau de bord).
+- **Chiffrement** : implémentation du chiffrement AFGH (*proxy re-encryption*) et correction du déchiffrement de niveau 2.
+- **Intégration** : branchement du frontend sur la vraie API, partage de fichiers de bout en bout, évolution du schéma de base de données (dossiers, équipes).
+
+Mes commits : [historique filtré par auteur](https://github.com/ywassate/vaultflow/commits/main/?author=ywassate).
+
+### Reprise en solo (juillet 2026)
+
+- Retrait de l'ancien prototype et nettoyage du dépôt.
+- Partage AFGH : passage des fichiers partagés en chiffré de niveau 2.
+- **Tests de tolérance aux pannes** ([test_fault_tolerance.py](backend/gateway/tests/test_fault_tolerance.py)) : perte de 0, 1, 2 et 3 fragments, différents motifs de panne ; résultats dans [fault_tolerance_results.json](fault_tolerance_results.json).
+- **Tests de performance** côté serveur ([test_performance.py](backend/gateway/tests/test_performance.py)) et côté navigateur ([performanceTest.ts](frontend/src/tests/performanceTest.ts)) ; synthèse dans [PERFORMANCE_SUMMARY.md](PERFORMANCE_SUMMARY.md). Par exemple, un fichier de 10 Mo est déposé en 0,6 s et récupéré en 0,7 s.
 
 ## Architecture
 
@@ -39,10 +62,16 @@ Stockage distribue chiffre - Projet S9
 │   └── init.sql              # Schema PostgreSQL
 ├── scripts/                  # Scripts utilitaires
 ├── docker-compose.yaml       # Infrastructure
-└── .env                      # Configuration
+└── .env.example              # Modèle de configuration (à copier en .env)
 ```
 
 ## Quick Start
+
+### 0. Configurer
+
+```bash
+cp .env.example .env   # puis choisir ses propres mots de passe
+```
 
 ### 1. Lancer l'infrastructure (Docker)
 
@@ -106,23 +135,7 @@ Le frontend sera disponible sur `http://localhost:5173`
 
 ### Variables d'environnement (.env)
 
-```env
-# MinIO
-MINIO_ROOT_USER=minioadmin
-MINIO_ROOT_PASSWORD=minioadmin123456
-S3_BUCKET=secure-files
-S3_ACCESS_KEY=gateway-user
-S3_SECRET_KEY=gateway-secret-key-123
-
-# PostgreSQL
-PG_USER=postgres
-PG_PASSWORD=postgres123
-PG_DB=storage
-PG_PORT=5432
-
-# Gateway
-GATEWAY_PORT=8080
-```
+Copier [.env.example](.env.example) en `.env` et renseigner chaque valeur. Les mots de passe ne sont jamais versionnés : `.env` est ignoré par Git.
 
 ## Base de Donnees
 
@@ -147,5 +160,5 @@ GATEWAY_PORT=8080
 |---------|-----|-------------|
 | Frontend | http://localhost:5173 | - |
 | Gateway API | http://localhost:8080 | - |
-| MinIO Console | http://localhost:9001 | minioadmin / minioadmin123456 |
-| PostgreSQL | localhost:5432 | postgres / postgres123 |
+| MinIO Console | http://localhost:9001 | valeurs de `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` du `.env` |
+| PostgreSQL | localhost:5432 | valeurs de `PG_USER` / `PG_PASSWORD` du `.env` |
