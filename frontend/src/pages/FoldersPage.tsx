@@ -17,6 +17,13 @@ import { apiService } from "../services/apiService";
 import { calculateStorageByCategory } from "../utils/fileCategories";
 import type { EncryptedFile } from "../types";
 
+type FolderResponse = Folder & {
+  folder_id?: Folder['id'];
+  parent_folder_id?: Folder['parentFolderId'];
+  created_at?: Folder['createdAt'];
+  updated_at?: Folder['updatedAt'];
+};
+
 // Helper function to format file size
 const formatSize = (bytes: number): string => {
   if (bytes === 0) return '0 B';
@@ -50,7 +57,7 @@ export const FoldersPage: React.FC = () => {
       ]);
 
       // Adapt folders to match Folder type
-      const adaptedFolders: Folder[] = foldersData.map((f: any) => ({
+      const adaptedFolders: Folder[] = foldersData.map((f: FolderResponse) => ({
         id: f.id || f.folder_id,
         name: f.name,
         description: f.description,
@@ -113,7 +120,7 @@ export const FoldersPage: React.FC = () => {
 
   // Calculate percentages and create segments for the circle
   const segments = Object.entries(storageByCategory)
-    .filter(([_, data]) => data.size > 0)
+    .filter(([, data]) => data.size > 0)
     .map(([key, data]) => ({
       key,
       ...data,

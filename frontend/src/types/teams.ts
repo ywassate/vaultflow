@@ -5,7 +5,7 @@ export interface TeamMember {
   email: string;
   name: string;
   role: UserRole;
-  joinedAt: string;
+  joinedAt?: string;
   avatar?: string;
 }
 
@@ -18,7 +18,7 @@ export interface Team {
   createdAt: string;
   members: TeamMember[];
   sharedFiles: number;
-  settings: TeamSettings;
+  settings: Partial<TeamSettings>;
 }
 
 export interface TeamSettings {
