@@ -5,6 +5,7 @@
 
 import { afghService } from '../services/crypto/afghService';
 import { afghFileService } from '../services/crypto/afghFileService';
+import type { AFGHKeyPair, AFGHPublicKey } from '../types/afgh';
 
 interface PerformanceResult {
   operation: string;
@@ -35,7 +36,7 @@ const ITERATIONS = 3;
 /**
  * Generate random test data
  */
-function generateTestData(sizeBytes: number): Uint8Array {
+function generateTestData(sizeBytes: number): Uint8Array<ArrayBuffer> {
   const data = new Uint8Array(sizeBytes);
   crypto.getRandomValues(data);
   return data;
@@ -44,7 +45,7 @@ function generateTestData(sizeBytes: number): Uint8Array {
 /**
  * Create a File object from data
  */
-function createTestFile(data: Uint8Array, name: string): File {
+function createTestFile(data: Uint8Array<ArrayBuffer>, name: string): File {
   const blob = new Blob([data], { type: 'application/octet-stream' });
   return new File([blob], name, { type: 'application/octet-stream' });
 }
@@ -85,7 +86,7 @@ async function testKeyGeneration(): Promise<number> {
 
   for (let i = 0; i < 5; i++) {
     const { durationMs } = await measureTime(async () => {
-      await afghService.generateKeyPair();
+      await afghService.generateKeyPair(`perf-keygen-${i}`);
     });
     times.push(durationMs);
     console.log(`  Iteration ${i + 1}: ${durationMs.toFixed(2)}ms`);
@@ -100,13 +101,13 @@ async function testKeyGeneration(): Promise<number> {
 /**
  * Run Encryption Performance Test
  */
-async function testEncryption(keyPair: any): Promise<PerformanceResult[]> {
+async function testEncryption(keyPair: AFGHKeyPair): Promise<PerformanceResult[]> {
   console.log('\n=== Encryption Performance Test ===');
 
   const results: PerformanceResult[] = [];
 
   for (const { label, bytes } of FILE_SIZES) {
-    console.log(`\nTesting ${label}...`);
+    console.log(`\nTesting ${label} (${formatBytes(bytes)})...`);
     const times: number[] = [];
 
     for (let i = 0; i < ITERATIONS; i++) {
@@ -141,13 +142,13 @@ async function testEncryption(keyPair: any): Promise<PerformanceResult[]> {
 /**
  * Run Decryption Performance Test
  */
-async function testDecryption(keyPair: any): Promise<PerformanceResult[]> {
+async function testDecryption(keyPair: AFGHKeyPair): Promise<PerformanceResult[]> {
   console.log('\n=== Decryption Performance Test ===');
 
   const results: PerformanceResult[] = [];
 
   for (const { label, bytes } of FILE_SIZES) {
-    console.log(`\nTesting ${label}...`);
+    console.log(`\nTesting ${label} (${formatBytes(bytes)})...`);
 
     // First encrypt the file
     const testData = generateTestData(bytes);
@@ -185,11 +186,16 @@ async function testDecryption(keyPair: any): Promise<PerformanceResult[]> {
 /**
  * Run Proxy Re-Encryption Performance Test
  */
-async function testProxyReEncryption(ownerKeyPair: any): Promise<PerformanceResult[]> {
+async function testProxyReEncryption(ownerKeyPair: AFGHKeyPair): Promise<PerformanceResult[]> {
   console.log('\n=== Proxy Re-Encryption Performance Test ===');
 
   // Generate recipient key pair
-  const recipientKeyPair = await afghService.generateKeyPair();
+  const recipientKeyPair = await afghService.generateKeyPair('perf-recipient');
+  const toPublicKey = (k: AFGHKeyPair): AFGHPublicKey => ({
+    publicKey1: k.publicKey1,
+    publicKey2: k.publicKey2,
+    userId: k.userId,
+  });
 
   const results: PerformanceResult[] = [];
 
@@ -200,7 +206,7 @@ async function testProxyReEncryption(ownerKeyPair: any): Promise<PerformanceResu
   ];
 
   for (const { label, bytes } of testSizes) {
-    console.log(`\nTesting ${label}...`);
+    console.log(`\nTesting ${label} (${formatBytes(bytes)})...`);
 
     // Encrypt file first
     const testData = generateTestData(bytes);
@@ -212,15 +218,15 @@ async function testProxyReEncryption(ownerKeyPair: any): Promise<PerformanceResu
     for (let i = 0; i < ITERATIONS; i++) {
       const { durationMs } = await measureTime(async () => {
         // Generate re-encryption key
-        const reKey = await afghService.generateReEncryptionKey(
-          ownerKeyPair.secretKey1,
+        const { reEncryptionKey } = await afghService.generateReEncryptionKey(
           ownerKeyPair.secretKey2,
-          recipientKeyPair.publicKey1,
-          recipientKeyPair.publicKey2
+          toPublicKey(recipientKeyPair),
+          ownerKeyPair.userId,
+          recipientKeyPair.userId
         );
 
         // Re-encrypt the KEM ciphertext
-        await afghService.reEncrypt(envelope.kemCiphertext, reKey);
+        await afghService.reEncrypt(envelope.kemCiphertext, reEncryptionKey, toPublicKey(ownerKeyPair));
       });
 
       times.push(durationMs);
@@ -326,7 +332,7 @@ export async function runPerformanceTests(): Promise<void> {
 
     // Generate a key pair for subsequent tests
     console.log('\nGenerating test key pair...');
-    const keyPair = await afghService.generateKeyPair();
+    const keyPair = await afghService.generateKeyPair('perf-owner');
     console.log('Key pair generated.');
 
     // Run encryption tests
@@ -361,4 +367,5 @@ export async function runPerformanceTests(): Promise<void> {
 }
 
 // Export for use in browser console
-(window as any).runPerformanceTests = runPerformanceTests;
+(window as unknown as { runPerformanceTests: typeof runPerformanceTests }).runPerformanceTests =
+  runPerformanceTests;
