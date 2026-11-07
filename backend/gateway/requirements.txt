@@ -8,3 +8,6 @@ requests
 python-multipart
 python-dotenv
 minio
+boto3
+aiohttp
+psycopg[binary]
